@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Haunted Escape Room — Animated</title>
+  <style>
+    :root{
+      --panel-bg: rgba(0,0,0,0.6);
+      --accent: #b7f59f;
+    }
+    *{box-sizing:border-box}
+    body,html{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto;}
+    body{color:#fff;display:flex;flex-direction:column;align-items:stretch;transition:background 1s ease;overflow:hidden;}
+    #hdr{padding:14px;text-align:center;background:rgba(0,0,0,0.35);position:sticky;top:0;z-index:30;}
+    #hdr h1{margin:0;font-size:22px}
+    #timer{margin-top:8px;font-size:14px;color:#ffdead}
+    #gameArea{position:relative;flex:1;min-height:70vh;display:block;overflow:hidden;z-index:10;}
+    .room{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .6s ease, transform .6s ease;}
+    .room.visible{opacity:1;pointer-events:auto;transform:translateY(0);}
+    .panel{background:var(--panel-bg);padding:18px;border-radius:12px;min-width:280px;max-width:420px;box-shadow:0 10px 30px rgba(0,0,0,0.6);backdrop-filter: blur(2px);}
+    .puzzle input{width:80%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #ccc;font-size:16px;}
+    button{padding:10px 14px;border-radius:8px;border:none;background:#0ea5a4;color:#061014;font-weight:700;cursor:pointer;margin-top:10px;}
+    .btnrow{display:flex;gap:10px;justify-content:center;margin-top:10px;}
+    .color{font-size:22px;padding:10px;border-radius:8px;border:none;cursor:pointer;background:rgba(255,255,255,0.07);}
+    /* background images */
+    #startScreen{background-image:url('https://i.pinimg.com/736x/5b/b0/4a/5bb04a41dfc7461f5d28a54240b68ef2.jpg');background-size:cover;background-position: center; -;filter:grayscale(0.1) contrast(0.9) brightness(0.8);}
+    #room1{background-image:url('https://images.unsplash.com/photo-1633555690973-b736f84f3c1b?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');background-size:cover;background-position: center; -;filter:grayscale(0.1) contrast(0.9) brightness(0.8);}
+    #room2{background-image:url('https://plus.unsplash.com/premium_photo-1695027463233-f0827a90b143?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');background-size:cover;background-position:center;filter:contrast(1.1) saturate(1.2) hue-rotate(200deg);}
+    #room3{background-image:url('https://images.unsplash.com/photo-1634392474900-840460491cf3?q=80&w=2072&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');background-size:cover;background-position:center;filter:sepia(0.4) contrast(1.05);}
+    #room4{background-image:url('https://images.unsplash.com/photo-1604005950576-8745a5c40581?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');background-size:cover;background-position:center;filter:grayscale(0.6) contrast(1.2) brightness(0.75);}
+    #room5{background-image:url('https://images.unsplash.com/photo-1558218898-a71cf768ec14?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');background-size:cover;background-position:center;filter:saturate(0.7) contrast(1.05) brightness(0.9);}
+    #room6{background-image:url('https://media.istockphoto.com/id/1253979253/photo/horror-and-creepy-ward-room-in-the-hospital-with-blood-3d-rendering.jpg?s=1024x1024&w=is&k=20&c=hYcmAdvIYFxK5lhzcPyDGp_n0Kt_gCdnOEEf6LGS-vI=');background-size:cover;background-position:center;filter:hue-rotate(180deg) contrast(1.05);}
+    #room7{background-image:url('https://i.pinimg.com/736x/81/5e/02/815e02b6f163539d9129423f622da170.jpg');background-size:cover;background-position:center;filter:brightness(0.6) saturate(0.9);}
+    #win {
+    background-image:url('https://i.pinimg.com/736x/3f/2d/22/3f2d2204dc33dae08cc2fa7ce23a5360.jpg');
+    background-size:cover;
+    background-position:center;
+    filter:grayscale(0.1) contrast(0.9) brightness(0.8);
+  }
+
+    /* fog overlay */
+    #fog{position:fixed;inset:0;pointer-events:none;z-index:20;background:transparent;}
+    #fog::before{content:'';position:absolute;inset:-10%;background:radial-gradient(ellipse at 10% 20%, rgba(255,255,255,0.02) 0%, transparent 20%), radial-gradient(ellipse at 90% 80%, rgba(255,255,255,0.02) 0%, transparent 20%);opacity:0.6;mix-blend-mode:screen;animation:drift 12s linear infinite;}
+    @keyframes drift{0%{transform:translateX(-10%)}50%{transform:translateX(10%)}100%{transform:translateX(-10%)}}
+    .panel.flicker{animation:panelFlicker 3s infinite;}
+    @keyframes panelFlicker{0%{filter:brightness(1);}10%{filter:brightness(0.6) saturate(0.9);}13%{filter:brightness(1);}20%{filter:brightness(0.7);}100%{filter:brightness(1);}}
+    .room.flick{animation:roomFlick 2.5s infinite;}
+    @keyframes roomFlick{0%{filter:brightness(1);}40%{filter:brightness(0.85) sepia(0.05);}60%{filter:brightness(0.95);}100%{filter:brightness(1);}}
+    #dust{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:15;}
+    .shake{animation:shake 0.6s;animation-timing-function:cubic-bezier(.36,.07,.19,.97);transform-origin:center;}
+    @keyframes shake{10%,90%{transform:translateX(-1px) translateY(0);}20%,80%{transform:translateX(2px) translateY(-1px);}30%,50%,70%{transform:translateX(-4px) translateY(2px);}40%,60%{transform:translateX(4px) translateY(-2px);}}
+    @media (max-width:600px){ .panel{width:92%;} }
+  </style>
+</head>
+<body>
+  <header id="hdr">
+    <h1>🔐 Haunted Escape Room</h1>
+    <div id="timer">⏱ Time: <span id="time">0</span>s</div>
+  </header>
+
+  <main id="gameArea">
+    <!-- START SCREEN -->
+    <section id="startScreen" class="room visible">
+      <div class="panel puzzle">
+        <h2>👻 Haunted Escape Room</h2>
+        <p>Are you brave enough to escape the haunted house?</p>
+        <button id="startBtn">Start Game</button>
+      </div>
+    </section>
+
+    <!-- ROOM 1 -->
+    <section id="room1" class="room" data-room="1">
+      <div class="panel puzzle">
+        <h2>Room 1</h2>
+        <p>Find the code: (14+7+33+20+9-5-23-2)/3 = ?</p>
+        <input type="number" id="room1Answer"><br>
+        <button id="r1btn">Unlock</button>
+      </div>
+    </section>
+
+    <!-- ROOM 2 -->
+    <section id="room2" class="room" data-room="2">
+      <div class="panel puzzle">
+        <h2>Room 2</h2>
+        <p>Pick the sequence:  Blue → Brown → Pink</p>
+        <div class="btnrow">
+          <button class="color" data-color="brown">🔴</button>
+          <button class="color" data-color="pink">🔵</button>
+          <button class="color" data-color="blue">🟢</button>
+        </div>
+        <p id="colorMsg"></p>
+      </div>
+    </section>
+
+    <!-- ROOM 3 -->
+    <section id="room3" class="room" data-room="3">
+      <div class="panel puzzle">
+        <h2>Room 3</h2>
+        <p>Riddle: A box without hinges, key, or lid, yet golden treasure inside is hid?</p>
+        <p>Hint: My shell protects the treasure inside.</p>
+        <input type="text" id="riddleAnswer"><br>
+        <button id="r3btn">Submit</button>
+      </div>
+    </section>
+
+    <!-- ROOM 4 -->
+    <section id="room4" class="room" data-room="4">
+      <div class="panel puzzle">
+        <h2>Room 4</h2>
+        <p>Guess the magical number (1–10)</p>
+        <input type="number" id="guessNumber"><br>
+        <button id="r4btn">Check</button>
+        <p id="guessMsg"></p>
+      </div>
+    </section>
+
+    <!-- ROOM 5 -->
+    <section id="room5" class="room" data-room="5">
+      <div class="panel puzzle">
+        <h2>Room 5 </h2>
+        <p>SPELL ME & CRACK ME: <b>DCAOAEBULRY</b></p>
+        <input type="text" id="Answer"><br>
+        <button id="r5btn">Submit</button>
+      </div>
+    </section>
+
+    <!-- ROOM 6 -->
+    <section id="room6" class="room" data-room="6">
+      <div class="panel puzzle">
+        <h2>Room 6</h2>
+        <p>Memory Puzzle: Read Me If You Can!→  </p>
+        <p>"GNIRPS SI EHT EDOC"</p>
+        <input type="text" id="memoryAnswer" placeholder="Type ANS"><br>
+        <button id="r6btn">Submit</button>
+      </div>
+    </section>
+
+    <!-- ROOM 7 -->
+    <section id="room7" class="room" data-room="7">
+      <div class="panel puzzle">
+        <h2>Room 7 — Final Gate</h2>
+        <p>FILL MEE!! : A_V_NT_RE</p>
+        <input type="text" id="finalAnswer" placeholder="Enter ANS"><br>
+        <button id="r7btn">Unlock Door</button>
+      </div>
+    </section>
+
+    <!-- WIN SCREEN -->
+    <section id="win" class="room">
+      <div class="panel puzzle">
+        <h2>🎉 You Escaped!</h2>
+        <p>Brave soul — you escaped the haunted house.</p>
+        <button id="restart">Restart</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="fog"></div>
+  <canvas id="dust"></canvas>
+
+  <audio id="bgm" src="https://www.soundjay.com/horror/sounds/horror-ambience-01.mp3" loop></audio>
+  <audio id="fxSuccess" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+  <audio id="fxError" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+  <audio id="fxDoor" src="https://www.soundjay.com/mechanical/sounds/door-creak-1.mp3"></audio>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const rooms = Array.from(document.querySelectorAll('.room'));
+      const bgm = document.getElementById('bgm');
+      const fxSuccess = document.getElementById('fxSuccess');
+      const fxError = document.getElementById('fxError');
+      const fxDoor = document.getElementById('fxDoor');
+      const timerEl = document.getElementById('time');
+      const dustCanvas = document.getElementById('dust');
+
+      let time = 0;
+      let timerInt = null;
+      let colorSequence = [];
+
+      function tryPlayBGM(){ try { bgm.volume=0.45; bgm.play().catch(()=>{}); } catch(e){} }
+      function flashPanel(panel){ panel.classList.add('flicker'); setTimeout(()=> panel.classList.remove('flicker'),3000);}
+      function shakeScreen(){ document.body.classList.add('shake'); setTimeout(()=> document.body.classList.remove('shake'),650);}
+
+      function startGame(){ 
+        timerInt=setInterval(()=>{ time++; timerEl.textContent=time; },1000); 
+        startDust(); 
+      }
+
+      function showRoom(n){ rooms.forEach(r=> r.classList.remove('visible')); const target=document.getElementById('room'+n); if(target) target.classList.add('visible'); }
+      function showWin(){ rooms.forEach(r=> r.classList.remove('visible')); document.getElementById('win').classList.add('visible'); clearInterval(timerInt);}
+
+      // START BUTTON
+      document.getElementById('startBtn').addEventListener('click', ()=>{
+        showRoom(1);
+        startGame();
+        tryPlayBGM();
+      });
+
+      document.getElementById('r1btn').addEventListener('click', ()=>{
+        const v = document.getElementById('room1Answer').value.trim();
+        const panel = document.querySelector('#room1 .panel');
+        if(v === '17.6'){ fxSuccess.play(); flashPanel(panel); showRoom(2); }
+        else { fxError.play(); shakeScreen(); flashPanel(panel);}
+      });
+
+      document.querySelectorAll('.color').forEach(b=> b.addEventListener('click',(e)=>{
+        const c = e.currentTarget.dataset.color;
+        colorSequence.push(c);
+        if(colorSequence.length === 3){
+          if(colorSequence.join() === 'blue,brown,pink'){ fxSuccess.play(); showRoom(3); }
+          else { fxError.play(); shakeScreen(); document.getElementById('colorMsg').textContent = 'Wrong sequence'; }
+          colorSequence = [];
+        }
+      }));
+
+      document.getElementById('r3btn').addEventListener('click', ()=>{
+        const a = document.getElementById('riddleAnswer').value.trim().toLowerCase();
+        if(a==='egg'){ fxSuccess.play(); showRoom(4);}
+        else { fxError.play(); shakeScreen();}
+      });
+
+      document.getElementById('r4btn').addEventListener('click', ()=>{
+        const g = parseInt(document.getElementById('guessNumber').value);
+        if(g===7){ fxSuccess.play(); showRoom(5);} else { fxError.play(); shakeScreen(); document.getElementById('guessMsg').textContent='Wrong guess'; }
+      });
+
+      document.getElementById('r5btn').addEventListener('click', ()=>{
+        const s = document.getElementById('Answer').value.trim().toLowerCase();
+        if(s==='vocabulary'){ fxSuccess.play(); showRoom(6);} else { fxError.play(); shakeScreen(); }
+      });
+
+      document.getElementById('r6btn').addEventListener('click', ()=>{
+        const m = document.getElementById('memoryAnswer').value.trim().toUpperCase();
+        if(m==='SPRING IS THE CODE'){ fxSuccess.play(); showRoom(7);} else { fxError.play(); shakeScreen(); }
+      });
+
+      document.getElementById('r7btn').addEventListener('click', ()=>{
+        const f = document.getElementById('finalAnswer').value.trim().toUpperCase();
+        if(f==='ADVENTURE'){ fxDoor.play(); showWin(); } else { fxError.play(); shakeScreen(); }
+      });
+
+      document.getElementById('restart').addEventListener('click', ()=> location.reload());
+
+      // DUST PARTICLES
+      function startDust(){
+        const canvas=dustCanvas; const ctx=canvas.getContext('2d'); let w=canvas.width=window.innerWidth; let h=canvas.height=window.innerHeight;
+        const particles=[]; const count=Math.round((w*h)/80000);
+        for(let i=0;i<count;i++){ particles.push({x:Math.random()*w, y:Math.random()*h, r:Math.random()*1.6+0.4, vx:(Math.random()-0.5)*0.2, vy:-(Math.random()*0.3+0.1), alpha:Math.random()*0.6+0.2});}
+        window.addEventListener('resize', ()=>{ w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight;});
+        function loop(){ ctx.clearRect(0,0,w,h); for(const p of particles){ p.x+=p.vx; p.y+=p.vy; if(p.y<-10){p.y=h+10;p.x=Math.random()*w;} if(p.x<-10)p.x=w+10; if(p.x>w+10)p.x=-10; ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,'+p.alpha+')'; ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); } requestAnimationFrame(loop);}
+        loop();
+      }
+    });
+  </script>
+</body>
+</html>.
